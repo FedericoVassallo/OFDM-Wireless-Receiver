@@ -15,13 +15,10 @@ preamble = preamble_generate(conf.sc.nsyms); % generate preamble of 100 bits (no
 preamble_mapped = -2 .* preamble + 1; % bpsk_modulate the preamble
 preamble_upsample = upsample(preamble_mapped,conf.sc.os_factor); %OFDM has a different OS factor
 preamble_shaped = conv(preamble_upsample, conf.sc.txpulse, 'valid');
+preamble_upconverted = up_conversion(preamble_shaped, conf.f_c, conf.f_s);
 
 
 
-%% Final signal 
+%% Bu
 txsignal = zeros(10000,1);
-txsignal(1:length(preamble_shaped)) = preamble_shaped;
-
-%% Upconversion
-time = 0:(1/conf.f_s) : size(txsignal,1)/conf.f_s - (1/conf.f_s);
-txsignal = real(txsignal.*exp(1i*2*pi*conf.f_c.*time.'));
+txsignal(1:length(preamble_upconverted)) = preamble_upconverted;
