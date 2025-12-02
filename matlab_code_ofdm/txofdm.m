@@ -11,11 +11,18 @@ function [txsignal, conf] = txofdm(txbits,conf)
 
 
 %% Preamble generation and mapping
-preamble = preamble_generate(conf.sc.nsyms); % generate preamble of 100 bits (no need to map for bpsk)
-preamble_mapped = -2 .* preamble + 1; % bpsk_modulate the preamble
+preamble_bits = preamble_generate(conf.sc.nsyms); % generate preamble of 100 bits (no need to map for bpsk)
+preamble_mapped = -2 .* preamble_bits + 1; % bpsk_modulate the preamble
 preamble_upsample = upsample(preamble_mapped,conf.sc.os_factor); %OFDM has a different OS factor
 preamble_shaped = conv(preamble_upsample, conf.sc.txpulse, 'valid');
 
+%% Training symbols
+training_bits = training_generate(2*conf.ofdm.ncarrier);
+training_bits = reshape(training_bits, [2, length(training_bits)/2]).';
+training_symb = QPSK_mapping(training_bits);
+
+%% Data symbols
+txbits = reshape(txbits, [2, length(txbits)/2]).';
 
 
 %% Final signal 
