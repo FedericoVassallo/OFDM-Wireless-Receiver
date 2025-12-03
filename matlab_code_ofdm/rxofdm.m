@@ -14,8 +14,13 @@ function [rxbits, conf] = rxofdm(rxsignal,conf)
 
 
 %% Downconversion
+
+% Define the time frame
+time = 0:(1/conf.f_s) : size(rxsignal,1)/conf.f_s - (1/conf.f_s);
+
+% Perform the downconversion by removing the RF carrier
+rxsignal_downconverted = (rxsignal.*exp(-1i*2*pi*conf.f_c.*time.'));
 % Keep in mind that downconversion is done once for the entire signal
-rxsignal_downconverted = down_conversion(rxsignal,conf.f_c,conf.f_s);
 
 %% Filter the Downconverted RX Signal
 
@@ -27,7 +32,8 @@ rx_signal_filtered = ofdmlowpass(rxsignal_downconverted, conf, f_cutoff);
 % Remember that the OFDM signal has just a low pass filter
 
 %% Frame Synchronization
-OFDM_init = frame_sync(rx_signal_filtered, conf);    % First sample of the OFDM signal
+OFDM_start = frame_sync(rx_signal_filtered, conf);    % First sample of the OFDM signal
+
 
 
 rxbits = zeros(conf.nbits,1);
