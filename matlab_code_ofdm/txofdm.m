@@ -62,25 +62,16 @@ OFDM_resampled = ofdm_tx_resample(OFDM_serial, conf);
 
 %% Normalization 
 
+% normalization for OFDM 
+average_energy_OFDM = sum(abs(OFDM_resampled).^2)/length(OFDM_resampled);
+normalized_OFDM = (1/sqrt(average_energy_OFDM))*OFDM_resampled;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+% normalization for sample
+average_energy_preamble = sum(abs(preamble_shaped).^2)/length(preamble_shaped);
+normalized_preamble = (1/sqrt(average_energy_preamble))*preamble_shaped;
 
 %% Final signal 
-txsignal = zeros(10000,1);
-txsignal(1:length(preamble_shaped)) = preamble_shaped;
+txsignal = [normalized_preamble; normalized_OFDM];
 
 %% Upconversion
 time = 0:(1/conf.f_s) : size(txsignal,1)/conf.f_s - (1/conf.f_s);
