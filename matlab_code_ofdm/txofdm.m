@@ -23,6 +23,59 @@ training_symb = QPSK_mapping(training_bits);
 
 %% Data symbols
 txbits = reshape(txbits, [2, length(txbits)/2]).';
+tx_symbol = QPSK_mapping(txbits);
+
+%% Add the Training symbols before the Data symbols 
+all_symb = [training_symb; tx_symbol];
+
+%% We calculate the number of total OFDM symbols and  add padding size if needed
+number_OFDM_symb = ceil(length(all_symb) / conf.ofdm.ncarrier); % to see if ceil is needed
+
+pad_size = (number_OFDM_symb * conf.ofdm.ncarrier) - length(all_symb);
+
+if pad_size > 0
+        all_symb = [all_symb; zeros(pad_size, 1)];
+end
+
+%% Implement the Serial to Parallel reshape
+
+OFDM_grid = reshape(all_symb, [conf.ofdm.ncarrier, number_OFDM_symb]);
+
+%% Perform standard IFFT on the grid
+
+tx_time_domain = ifft(OFDM_grid, conf.ofdm.ncarrier);
+
+%% Add of Cyclic Prefix
+
+%Extract the CP part (last cp_len samples from every column)
+cp_part = tx_time_domain(end - conf.ofdm.cplen + 1 : end, :);
+
+tx_with_cp = [cp_part; tx_time_domain];
+
+%% Implement the Prallel to Serial conversion
+
+OFDM_serial = tx_with_cp(:);
+
+%% Do the resampling
+
+OFDM_resampled = ofdm_tx_resample(OFDM_serial, conf);
+
+%% Normalization 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 %% Final signal 
