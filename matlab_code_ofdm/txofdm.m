@@ -30,6 +30,7 @@ all_symb = [training_symb; tx_symbol];
 
 %% We calculate the number of total OFDM symbols and  add padding size if needed
 number_OFDM_symb = ceil(length(all_symb) / conf.ofdm.ncarrier); % to see if ceil is needed
+conf.number_OFDM_symb = number_OFDM_symb; % to check
 
 pad_size = (number_OFDM_symb * conf.ofdm.ncarrier) - length(all_symb);
 
@@ -58,7 +59,8 @@ OFDM_serial = tx_with_cp(:);
 
 %% Do the resampling
 
-OFDM_resampled = ofdm_tx_resample(OFDM_serial, conf);
+OFDM_resampled = ofdm_tx_resampling(OFDM_serial, conf);
+conf.OFDM_resampled_length = length(OFDM_resampled);
 
 %% Normalization 
 
