@@ -14,12 +14,14 @@ function [txsignal, conf] = txofdm(txbits,conf)
 preamble_bits = preamble_generate(conf.sc.nsyms); % generate preamble of 100 bits (no need to map for bpsk)
 preamble_mapped = -2 .* preamble_bits + 1; % bpsk_modulate the preamble
 preamble_upsample = upsample(preamble_mapped,conf.sc.os_factor); %OFDM has a different OS factor
-preamble_shaped = conv(preamble_upsample, conf.sc.txpulse, 'valid');
+preamble_shaped = conv(preamble_upsample, conf.sc.txpulse, 'same');
 
 %% Training symbols
 training_bits = training_generate(2*conf.ofdm.ncarrier);
 training_bits = reshape(training_bits, [2, length(training_bits)/2]).';
 training_symb = QPSK_mapping(training_bits);
+
+conf.ofdm.training_symbol = training_symb;
 
 %% Data symbols
 txbits = reshape(txbits, [2, length(txbits)/2]).';
@@ -53,7 +55,7 @@ cp_part = tx_time_domain(end - conf.ofdm.cplen + 1 : end, :);
 
 tx_with_cp = [cp_part; tx_time_domain];
 
-%% Implement the Prallel to Serial conversion
+%% Implement the Parallel to Serial conversion
 
 OFDM_serial = tx_with_cp(:);
 
@@ -73,7 +75,7 @@ average_energy_preamble = sum(abs(preamble_shaped).^2)/length(preamble_shaped);
 normalized_preamble = (1/sqrt(average_energy_preamble))*preamble_shaped;
 
 %% Final signal 
-txsignal = [normalized_preamble; normalized_OFDM];
+txsignal = [normalized_preamble(:); normalized_OFDM];
 
 %% Upconversion
 time = 0:(1/conf.f_s) : size(txsignal,1)/conf.f_s - (1/conf.f_s);
