@@ -11,7 +11,7 @@ function [txsignal, conf] = txofdm(txbits,conf)
 
 
 %% Preamble generation and mapping
-preamble_bits = preamble_generate(conf.sc.nsyms); % generate preamble of 100 bits (no need to map for bpsk)
+preamble_bits = preamble_generate(conf.sc.nsyms); % generate preamble of 500 bits (no need to map for bpsk)
 preamble_mapped = -2 .* preamble_bits + 1; % bpsk_modulate the preamble
 preamble_upsample = upsample(preamble_mapped,conf.sc.os_factor); %OFDM has a different OS factor
 preamble_shaped = conv(preamble_upsample, conf.sc.txpulse, 'same');
@@ -62,6 +62,7 @@ OFDM_serial = tx_with_cp(:);
 %% Do the resampling
 
 OFDM_resampled = ofdm_tx_resampling(OFDM_serial, conf);
+
 conf.OFDM_resampled_length = length(OFDM_resampled);
 
 %% Normalization 
@@ -70,7 +71,7 @@ conf.OFDM_resampled_length = length(OFDM_resampled);
 average_energy_OFDM = sum(abs(OFDM_resampled).^2)/length(OFDM_resampled);
 normalized_OFDM = (1/sqrt(average_energy_OFDM))*OFDM_resampled;
 
-% normalization for sample
+% normalization for preamble
 average_energy_preamble = sum(abs(preamble_shaped).^2)/length(preamble_shaped);
 normalized_preamble = (1/sqrt(average_energy_preamble))*preamble_shaped;
 

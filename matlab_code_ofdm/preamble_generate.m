@@ -8,7 +8,7 @@ function output = preamble_generate(output_length)
 % x^0 + x^2 + x^3 + x^4 + x^8
 % The term x^8 is only implicitly given by the length of the polynomial
 
-    polynomial = [1 0 1 1 1 0 0 0]';
+    polynomial = [1 0 0 0 1 0 0 0 0]';
     
     % All memories are initialized with ones
     state = ones(size(polynomial));
