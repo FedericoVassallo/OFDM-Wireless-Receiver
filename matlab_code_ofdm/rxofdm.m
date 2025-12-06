@@ -103,4 +103,59 @@ title('RX Constellation');
 grid on; axis square; 
 hold off;
 
+%% Plotting the Constellation (4 Fasi)
+figure('Name', 'RX Constellation Evolution'); 
+
+% Genera costellazione ideale per riferimento (QPSK/4-QAM)
+ideal_constellation = qammod(0:3, 4, 'UnitAveragePower', true);
+
+% Totale simboli ricevuti
+N = length(rx_syms_norm);
+
+% Definisci i range richiesti.
+% Usiamo min() per evitare errori se il segnale ricevuto è più corto di 5000.
+idx_groups = { ...
+    1:min(1000, N), ...          % 1. Primi 1000
+    1:min(2500, N), ...          % 2. Primi 2500
+    1:min(5000, N), ...          % 3. Primi 5000
+    5001:N ...                   % 4. Restanti (da 5001 alla fine)
+};
+
+plot_titles = {'Primi 1000 Simboli', 'Primi 2500 Simboli', ...
+               'Primi 5000 Simboli', 'Restanti (>5000)'};
+
+for k = 1:4
+    % Crea una griglia 2x2
+    subplot(2, 2, k);
+    
+    current_idx = idx_groups{k};
+    
+    % Controlla se ci sono dati per questo gruppo (evita errori se N < 5000)
+    if ~isempty(current_idx) && current_idx(1) <= N
+        % Plot dei simboli ricevuti (Punti blu piccoli)
+        plot(real(rx_syms_norm(current_idx)), imag(rx_syms_norm(current_idx)), '.', 'MarkerSize', 4);
+        hold on;
+        
+        % Plot riferimento ideale (Croci rosse)
+        plot(real(ideal_constellation), imag(ideal_constellation), 'rx', 'LineWidth', 2, 'MarkerSize', 8);
+        
+        % Formattazione
+        grid on; 
+        axis square;
+        title(plot_titles{k});
+        xlabel('In-Phase'); 
+        ylabel('Quadrature');
+        
+        % Fissiamo gli assi per rendere i grafici comparabili visivamente
+        xlim([-2 2]); 
+        ylim([-2 2]);
+        hold off;
+    else
+        % Se non ci sono abbastanza dati (es. file corto)
+        text(0.5, 0.5, 'Nessun dato', 'HorizontalAlignment', 'center');
+        title(plot_titles{k});
+        axis off;
+    end
+end
+
 end
