@@ -28,7 +28,15 @@ txbits = reshape(txbits, [2, length(txbits)/2]).';
 tx_symbol = QPSK_mapping(txbits);
 
 %% Add the Training symbols before the Data symbols 
+if strcmp(conf.training_method,'Block')
+
 all_symb = [training_symb; tx_symbol];
+
+elseif strcmp(conf.training_method,'Comb')
+
+[all_symb, conf.training_comb] = comb_training(tx_symbol, conf);
+
+end
 
 %% We calculate the number of total OFDM symbols and  add padding size if needed
 number_OFDM_symb = ceil(length(all_symb) / conf.ofdm.ncarrier); % to see if ceil is needed

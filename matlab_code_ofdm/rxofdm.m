@@ -11,6 +11,7 @@ function [rxbits, conf] = rxofdm(rxsignal,conf)
 %
 %% Receiver Parameters
 txbis = conf.txbits;
+
 %% Downconversion
 % Define the time frame
 time = 0:(1/conf.f_s) : size(rxsignal,1)/conf.f_s - (1/conf.f_s);
@@ -33,9 +34,11 @@ OFDM_start = max(1, OFDM_start - safety_margin);
 % ----------------------------
 OFDM_signal_len = conf.OFDM_resampled_length;  
 OFDM_rx_signal = rx_signal_filtered(OFDM_start: OFDM_start + OFDM_signal_len - 1);
+
 %% Resampling
 % 2. Resample from Sound Card rate (fs') to Baseband rate (fs)
 rx_baseband = ofdm_rx_resampling(OFDM_rx_signal, conf);
+
 %% Serial-to-Parallel Conversion (Vectorized) & Remove CP
 % --- FIX 2: ROBUST RESHAPING ---
 nb_symbs = conf.number_OFDM_symb;
@@ -57,8 +60,24 @@ OFDM_rx_matrix_freq = fft(OFDM_rx_matrix_time);
 %% Channel Equalization
 rx_matrix_eq = channel_tracking(OFDM_rx_matrix_freq, conf);
 %% Remove Training Symbol & Serialize
-% Remove the first column (Training)
-rx_data_matrix = rx_matrix_eq(:, 2:end);
+
+% Check which training method was used
+if strcmp(conf.training_method, 'Comb')
+    
+    % CASE 1: COMB TRAINING
+    % The pilots are inside the symbol (interleaved rows). 
+    % We use the function to strip the pilot rows.
+    rx_data_matrix = remove_comb(rx_matrix_eq, conf);
+    
+elseif strcmp(conf.training_method, 'Block')
+    
+    % CASE 2: BLOCK TRAINING (Default)
+    % The training was the entire first OFDM symbol (first column).
+    % We simply remove the first column.
+    rx_data_matrix = rx_matrix_eq(:, 2:end);
+    
+end
+
 % serialize
 rx_syms_serial = rx_data_matrix(:);
 %% Normalizing
