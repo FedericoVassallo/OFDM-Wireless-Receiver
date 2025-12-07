@@ -82,7 +82,12 @@ txsignal = [normalized_preamble(:); normalized_OFDM];
 time = 0:(1/conf.f_s) : size(txsignal,1)/conf.f_s - (1/conf.f_s);
 txsignal = real(txsignal.*exp(1i*2*pi*conf.f_c.*time.'));
 
-max_val = max(abs(txsignal));
-if max_val > 0.95
-   txsignal = txsignal * (0.95 / max_val);
+%% Check the max peak
+
+max_peak = max(abs(txsignal));
+
+if max_peak > 1
+    % Scale down the entire signal so the highest peak fits in [-0.9, 0.9]
+    scale_factor = 0.9 / max_peak; 
+    txsignal = txsignal * scale_factor;
 end
