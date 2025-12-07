@@ -8,7 +8,7 @@ function [txsignal, conf] = txofdm(txbits,conf)
 %   conf    : Universal configuration structure
 
 %% Transmission parameters
-
+conf.txbits = txbits;
 
 %% Preamble generation and mapping
 preamble_bits = preamble_generate(conf.sc.nsyms); % generate preamble of 500 bits (no need to map for bpsk)
