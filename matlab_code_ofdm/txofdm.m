@@ -81,3 +81,8 @@ txsignal = [normalized_preamble(:); normalized_OFDM];
 %% Upconversion
 time = 0:(1/conf.f_s) : size(txsignal,1)/conf.f_s - (1/conf.f_s);
 txsignal = real(txsignal.*exp(1i*2*pi*conf.f_c.*time.'));
+
+max_val = max(abs(txsignal));
+if max_val > 0.95
+   txsignal = txsignal * (0.95 / max_val);
+end
