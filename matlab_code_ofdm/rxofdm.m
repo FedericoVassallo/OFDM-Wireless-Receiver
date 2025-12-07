@@ -78,20 +78,23 @@ elseif strcmp(conf.training_method, 'Block')
     
 end
 
-% serialize
+%% serialize
 rx_syms_serial = rx_data_matrix(:);
+
+if strcmp(conf.training_method, 'Comb')
+    % Calculate number of expected QPSK symbols (2 bits per symbol)
+    % Use conf.txbits if available (most robust), otherwise conf.nbits
+    n_data_symbs = conf.nbits / 2;
+    if length(rx_syms_serial) > n_data_symbs
+        rx_syms_serial = rx_syms_serial(1:n_data_symbs);
+    end
+end
+
 %% Normalizing
 % Normalize energy before demapping
 rx_syms_norm = rx_syms_serial / mean(abs(rx_syms_serial));
 %% Demapper
 rxbits = demapper(rx_syms_norm);
-
-if strcmp(conf.training_method, 'Comb') % if we are in the comb case we correct the padding
-    
-    if length(rxbits) > conf.nbits
-        rxbits = rxbits(1:conf.nbits);
-    end
-end
 
 %% Plotting the Constellation (Optional - Final)
 figure; 
