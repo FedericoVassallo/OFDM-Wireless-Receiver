@@ -1,0 +1,14 @@
+=========================================================
+Task 1 
+
+- (Block diagram to do)
+- It works
+- Up to SNR = -1 we can achieve a BER<1% (img in GitHub)
+
+=========================================================
+Task 2
+
+- It depends:
+	alpha = 0.01 -> approx 8 sym (very filtered phase) (after that, we start missing all the symbols due to phase shift)
+	alpha = 0.99 -> approx 40 sym to have BER<1%
+- 
