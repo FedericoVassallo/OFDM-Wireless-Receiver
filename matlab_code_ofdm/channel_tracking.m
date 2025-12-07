@@ -114,7 +114,7 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
             %theta_hat_matrix(:,j) = mod(0.01*theta_hat_correct + 0.99*theta_hat_prev, 2*pi);
 
             % TRY THIS: More responsive filter
-            alpha = 0.2; % Weight for the new measurement
+            alpha = 0.01; % Weight for the new measurement
             theta_hat_matrix(:,j) = mod(alpha*theta_hat_correct + (1-alpha)*theta_hat_prev, 2*pi);
           
             % [NEW] Reconstruct the full complex channel for this specific symbol
@@ -247,9 +247,16 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     axis xy; % Corrects Y-axis direction
 
     % PLOT 4: Channel Phase Evolution
-    % This helps identify Doppler drift (diagonal lines) or constant rotation
     figure('Name', 'Task 3: Channel Phase Evolution');
-    imagesc(sym_axis, freq_axis, unwrap(angle(H_evol_shifted)));
+    
+    % 1. Unwrap along Frequency (Dim 1)
+    phase_unwrapped = unwrap(angle(H_evol_shifted), [], 1);
+    
+    % 2. Unwrap along Time (Dim 2) - This fixes the vertical stripes!
+    phase_unwrapped = unwrap(phase_unwrapped, [], 2);
+    
+    % 3. Plot the fully smoothed phase
+    imagesc(sym_axis, freq_axis, phase_unwrapped);
     colorbar;
     xlabel('OFDM Symbol Index (Time)');
     ylabel('Frequency (Hz)');
