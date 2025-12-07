@@ -86,6 +86,13 @@ rx_syms_norm = rx_syms_serial / mean(abs(rx_syms_serial));
 %% Demapper
 rxbits = demapper(rx_syms_norm);
 
+if strcmp(conf.training_method, 'Comb') % if we are in the comb case we correct the padding
+    
+    if length(rxbits) > conf.nbits
+        rxbits = rxbits(1:conf.nbits);
+    end
+end
+
 %% Plotting the Constellation (Optional - Final)
 figure; 
 plot(real(rx_syms_norm), imag(rx_syms_norm), '.'); 

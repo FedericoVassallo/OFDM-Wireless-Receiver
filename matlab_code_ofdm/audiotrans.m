@@ -14,7 +14,7 @@ clc;
 conf.audiosystem = 'emulator'; 
 
 %Emulator configuration
-conf.emulator_idx = 1; % 1 to 5 yields different channels
+conf.emulator_idx = 2; % 1 to 5 yields different channels
 conf.emulator_snr = 100;
 
 % General parameters 
@@ -110,6 +110,6 @@ end
 % Receive Function
 [rxbits, conf]       = rxofdm(rxsignal,conf);
 
-n_bits_eval = min(length(txbits), length(rxbits)); %used to avoid for 'Comb' size mismatch
-res.biterrors    = sum(rxbits(1:n_bits_eval) ~= txbits);
-ber = res.biterrors/length(rxbits((1:n_bits_eval)))
+%n_bits_eval = min(length(txbits), length(rxbits)); %used to avoid for 'Comb' size mismatch
+res.biterrors    = sum(rxbits ~= txbits);
+ber = res.biterrors/length(rxbits())
