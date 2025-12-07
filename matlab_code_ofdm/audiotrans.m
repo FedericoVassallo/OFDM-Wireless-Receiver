@@ -14,7 +14,7 @@ clc;
 conf.audiosystem = 'emulator'; 
 
 %Emulator configuration
-conf.emulator_idx = 2; % 1 to 5 yields different channels
+conf.emulator_idx = 1; % 1 to 5 yields different channels
 conf.emulator_snr = 100;
 
 % General parameters 
