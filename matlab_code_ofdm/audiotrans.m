@@ -110,6 +110,5 @@ end
 % Receive Function
 [rxbits, conf]       = rxofdm(rxsignal,conf);
 
-%n_bits_eval = min(length(txbits), length(rxbits)); %used to avoid for 'Comb' size mismatch
 res.biterrors    = sum(rxbits ~= txbits);
-ber = res.biterrors/length(rxbits())
+ber = res.biterrors/length(rxbits)
