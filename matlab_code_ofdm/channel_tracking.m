@@ -111,7 +111,11 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
             end
 
             % Filter the phase obtained (0.01 new + 0.99 old)
-            theta_hat_matrix(:,j) = mod(0.01*theta_hat_correct + 0.99*theta_hat_prev, 2*pi);
+            %theta_hat_matrix(:,j) = mod(0.01*theta_hat_correct + 0.99*theta_hat_prev, 2*pi);
+
+            % TRY THIS: More responsive filter
+            alpha = 0.2; % Weight for the new measurement
+            theta_hat_matrix(:,j) = mod(alpha*theta_hat_correct + (1-alpha)*theta_hat_prev, 2*pi);
           
             % [NEW] Reconstruct the full complex channel for this specific symbol
             % H_current = |H_training| * exp(j * tracked_phase)

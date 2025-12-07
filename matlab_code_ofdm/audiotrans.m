@@ -11,7 +11,7 @@ clc;
 % Options for transmission are : 
 % emulator: use a channel emulator with 5 different configurations.
 % audio: use the loudspeaker and microphone for the data transmission
-conf.audiosystem = 'emulator'; 
+conf.audiosystem = 'audio'; 
 
 %Emulator configuration
 conf.emulator_idx = 1; % 1 to 5 yields different channels
