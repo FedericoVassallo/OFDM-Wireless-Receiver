@@ -128,69 +128,59 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
     end
 
 % -------------------------------------------------------------------------
-% Case 3: Comb Pilot (Optional/Legacy)
+% Case 3: Comb Pilot (Linear Interpolation)
 % -------------------------------------------------------------------------
 elseif strcmp(conf.channel_type, 'Comb') 
     
+    % Pre-calculate pilot indices (they are the same for every symbol)
+    % The spacing is defined by comb_insertion_rate (e.g., 4)
+    % Pilot indices: 1, 6, 11... if rate is 4 (spacing of 5)
+    pilot_spacing = conf.comb_insertion_rate + 1;
+    pilot_idxs = (1 : pilot_spacing : conf.ofdm.ncarrier).';
+    
+    % Target indices: We want the channel at ALL subcarriers (1 to N)
+    all_idxs = (1 : conf.ofdm.ncarrier).';
+
     for i = 1 : size(rx_matrix, 2)
         symb = rx_matrix(:, i);
         
-        % Extract the training symbs
-        Y = symb(1 : conf.comb_insertion_rate + 1 : end);
+        % 1. Extract the Received Pilots
+        Y = symb(pilot_idxs);
         
-        % Perform fft to get the channel transfer function
-        H_hat_comb = Y ./ conf.training_comb;
+        % 2. LS Estimation at Pilot locations
+        % H_hat = Y_pilot / X_pilot
+        H_hat_pilots = Y ./ conf.training_comb;
 
-        % Perform the correction (Interpolation logic simplified here)
-        % Note: This block is strictly copied from provided logic, but 
-        % H_evolution is not easily reconstructible without full interpolation code.
-        % We will skip H_evolution for Comb as it wasn't the focus of Task 3.
-        
-        idxs = 1 : conf.comb_insertion_rate + 1: size(rx_matrix, 1);
-        symb_equalized = [];
-        H_interp_col = []; % To store interpolated channel
-        
-        for j = 1 : length(H_hat_comb) - 1
-            % Interpolate phase and mag (Zero Order Hold in provided code essentially)
-            segment_len = idxs(j+1) - idxs(j);
-            phase_corr = angle(H_hat_comb(j));
-            mag_corr = abs(H_hat_comb(j));
-            
-            correction_factor = exp(-1i * mod(phase_corr, 2*pi)) ./ mag_corr;
-            tmp = symb(idxs(j) : idxs(j+1)-1) .* correction_factor;
-            symb_equalized = [symb_equalized ; tmp];
-            
-            % Reconstruct H for this segment
-            H_interp_col = [H_interp_col; ones(segment_len, 1) * H_hat_comb(j)];
-        end
-        % Last segment
-        phase_corr = angle(H_hat_comb(end));
-        mag_corr = abs(H_hat_comb(end));
-        correction_factor = exp(-1i * mod(phase_corr, 2*pi)) ./ mag_corr;
-        tmp = symb(idxs(end) : end) .* correction_factor;
-        symb_equalized = [symb_equalized ; tmp];
-        
-        H_interp_col = [H_interp_col; ones(length(tmp), 1) * H_hat_comb(end)];
+        % 3. Linear Interpolation
+        % We interpolate from the known 'pilot_idxs' to 'all_idxs'.
+        % 'linear': Fits a straight line between pilot points.
+        % 'extrap': Extends the slope for subcarriers beyond the last pilot.
+        H_interpolated = interp1(pilot_idxs, H_hat_pilots, all_idxs, 'linear', 'extrap');
 
-        rx_matrix_equalized(:,i) = symb_equalized;
-        H_evolution(:, i) = H_interp_col;
+        % 4. Equalization
+        % Divide the received symbol by the interpolated channel estimate
+        rx_matrix_equalized(:, i) = symb ./ H_interpolated;
+        
+        % 5. Store for Visualization
+        H_evolution(:, i) = H_interpolated;
     end
 end
     
 %% VISUALIZATION FOR TASK 3
 % Only plot if we have valid data in H_evolution
-if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi'))
+if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi') || strcmp(conf.channel_type,'Comb'))
 
     % --- 1. Define Axes ---
     
-    % Frequency Axis: Centered on f_c (e.g., 7000Hz to 9000Hz)
+    % Frequency Axis: Centered on f_c
     f_spacing = conf.ofdm.bandwidth / conf.ofdm.ncarrier;
     freq_axis = (0 : conf.ofdm.ncarrier-1) * f_spacing - conf.ofdm.bandwidth/2 + conf.f_c;
 
-    % Time Axis for PDP: Centered around 0 delay
-    % Resolution is 1/Bandwidth (approx 0.5ms)
+    % Time Axis for PDP: Starts at 0
+    % Resolution is 1/Bandwidth
     time_res = 1 / conf.ofdm.bandwidth; 
-    time_axis_pdp = ((-conf.ofdm.ncarrier/2) : (conf.ofdm.ncarrier/2 - 1)) * time_res;
+    % Create axis from 0 to (N-1)*dt
+    time_axis_pdp = (0 : conf.ofdm.ncarrier - 1) * time_res;
 
     % Symbol Index Axis (Time Evolution)
     sym_axis = 1:size(H_evolution, 2);
@@ -205,22 +195,25 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     % B. TIME DOMAIN (Power Delay Profile)
     % 1. Take IFFT of raw H (before shift) to get impulse response
     h_impulse_time = ifft(H_evolution, [], 1);
-    % 2. Shift so that delay=0 is in the center of the plot
-    h_impulse_shifted = fftshift(h_impulse_time, 1);
-    % 3. Calculate Power and Average
-    pdp = mean(abs(h_impulse_shifted).^2, 2); 
+    
+    % [MODIFIED] Do NOT shift. Index 1 is Delay 0.
+    pdp = mean(abs(h_impulse_time).^2, 2); 
     
     % --- 3. Generate Plots ---
 
-    % PLOT 1: Power Delay Profile
+    % PLOT 1: Power Delay Profile (Zoomed)
     figure('Name', 'Task 3: Power Delay Profile');
     plot(time_axis_pdp, 10*log10(pdp), 'LineWidth', 1.5);
     xlabel('Delay (s)');
     ylabel('Power (dB)');
-    title('Power Delay Profile (Averaged)');
-    grid on; axis tight;
-    % Note: A peak at 0s means direct path. Peaks at >0s are echoes.
-
+    title('Power Delay Profile (Zoomed)');
+    grid on; 
+    
+    % [ADDED] Limit x-axis to the first 20% of the duration
+    % This focuses the view on the relevant multipath components.
+    max_lag_time = time_axis_pdp(end);
+    xlim([0, max_lag_time * 0.2]); 
+    
     % PLOT 2: Average Frequency Response
     figure('Name', 'Task 3: Channel Frequency Response');
     
@@ -244,7 +237,7 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     xlabel('OFDM Symbol Index (Time)');
     ylabel('Frequency (Hz)');
     title('Channel Magnitude Evolution [dB]');
-    axis xy; % Corrects Y-axis direction
+    axis xy; 
 
     % PLOT 4: Channel Phase Evolution
     figure('Name', 'Task 3: Channel Phase Evolution');
@@ -252,10 +245,10 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     % 1. Unwrap along Frequency (Dim 1)
     phase_unwrapped = unwrap(angle(H_evol_shifted), [], 1);
     
-    % 2. Unwrap along Time (Dim 2) - This fixes the vertical stripes!
+    % 2. Unwrap along Time (Dim 2)
     phase_unwrapped = unwrap(phase_unwrapped, [], 2);
     
-    % 3. Plot the fully smoothed phase
+    % 3. Plot
     imagesc(sym_axis, freq_axis, phase_unwrapped);
     colorbar;
     xlabel('OFDM Symbol Index (Time)');

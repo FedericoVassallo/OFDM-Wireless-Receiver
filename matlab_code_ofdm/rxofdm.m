@@ -27,10 +27,10 @@ OFDM_start = frame_sync(rx_signal_filtered, conf);
 % Back off by a margin to ensure we are inside the Cyclic Prefix (Early).
 % Being 'Early' = Phase Shift (Fixed by Equalizer).
 % Being 'Late' = ISI (Destroys Signal).
-%{
+
 safety_margin = 20; 
 OFDM_start = max(1, OFDM_start - safety_margin);
-%}
+
 % ----------------------------
 OFDM_signal_len = conf.OFDM_resampled_length;  
 OFDM_rx_signal = rx_signal_filtered(OFDM_start: OFDM_start + OFDM_signal_len - 1);

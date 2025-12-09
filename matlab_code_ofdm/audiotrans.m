@@ -14,7 +14,7 @@ clc;
 conf.audiosystem = 'emulator'; 
 
 %Emulator configuration
-conf.emulator_idx = 2; % 1 to 5 yields different channels
+conf.emulator_idx = 3; % 1 to 5 yields different channels
 conf.emulator_snr = 100;
 
 % General parameters 
@@ -30,7 +30,7 @@ conf.ofdm.bandwidth = 2000; %f_s/bw should be an integer for resampling
 conf.ofdm.ncarrier  = 512;
 conf.ofdm.cplen     = 256;
 conf.modulation_order = 2; % 2 for QPSK
-conf.channel_type = 'Comb'; % Options: 'Block', 'Block_Viterbi'
+conf.channel_type = 'Comb'; % Options: 'Block', 'Block_Viterbi', Comb
 conf.training_method = 'Comb'; % Options: 'Block', 'Comb'
 
 conf.comb_insertion_rate = 4; % Example: 1 pilot every 4 subcarriers

@@ -14,7 +14,7 @@ clc;
 conf.audiosystem = 'emulator'; 
 
 %Emulator configuration
-conf.emulator_idx = 4; % 1 to 5 yields different channels
+conf.emulator_idx = 3; % 1 to 5 yields different channels
 conf.emulator_snr = 100;
 
 % General parameters 
@@ -26,12 +26,12 @@ conf.sc.f_sym = 1000;  % symbol rate
 conf.sc.nsyms = 500;    %number of preamble symbols
 
 %OFDM
-conf.ofdm.bandwidth = 2000; %f_s/bw should be an integer for resampling
-conf.ofdm.ncarrier  = 512;
-conf.ofdm.cplen     = 256;
+conf.ofdm.bandwidth = 4000; %f_s/bw should be an integer for resampling
+conf.ofdm.ncarrier  = 1024;
+conf.ofdm.cplen     = ;
 conf.modulation_order = 2; % 2 for QPSK
-conf.channel_type = 'Comb'; % Options: 'Block', 'Block_Viterbi'
-conf.training_method = 'Comb'; % Options: 'Block', 'Comb'
+conf.channel_type = 'Block'; % Options: 'Block', 'Block_Viterbi'
+conf.training_method = 'Block'; % Options: 'Block', 'Comb'
 
 conf.comb_insertion_rate = 4; % Example: 1 pilot every 4 subcarriers
 
@@ -110,6 +110,5 @@ end
 % Receive Function
 [rxbits, conf]       = rxofdm(rxsignal,conf);
 
-n_bits_eval = min(length(txbits), length(rxbits)); %used to avoid for 'Co
-res.biterrors    = sum(rxbits(1:n_bits_eval) ~= txbits);
+res.biterrors    = sum(rxbits ~= txbits);
 ber = res.biterrors/length(rxbits)
