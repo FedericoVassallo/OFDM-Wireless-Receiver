@@ -190,6 +190,15 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     % A. FREQUENCY DOMAIN
     % Shift data so DC component is in the center of the array
     H_evol_shifted = fftshift(H_evolution, 1); 
+        
+    % [FIX] Remove the last symbol from the plot only:
+    % The last symbol often contains zero-padding which creates 
+    % estimation artifacts ("stains"), even if the data is valid.
+    H_evol_shifted = H_evol_shifted(:, 1:end-1);
+    
+    % Adjust the time axis to match the new size
+    sym_axis = sym_axis(1:end-1);
+
     H_avg_shifted  = mean(H_evol_shifted, 2);
 
     % B. TIME DOMAIN (Power Delay Profile)

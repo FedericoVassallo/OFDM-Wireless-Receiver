@@ -26,12 +26,12 @@ conf.sc.f_sym = 1000;  % symbol rate
 conf.sc.nsyms = 500;    %number of preamble symbols
 
 %OFDM
-conf.ofdm.bandwidth = 4000; %f_s/bw should be an integer for resampling
-conf.ofdm.ncarrier  = 1024;
-conf.ofdm.cplen     = ;
+conf.ofdm.bandwidth = 2000; %f_s/bw should be an integer for resampling
+conf.ofdm.ncarrier  = 512;
+conf.ofdm.cplen     = 256;
 conf.modulation_order = 2; % 2 for QPSK
-conf.channel_type = 'Block'; % Options: 'Block', 'Block_Viterbi'
-conf.training_method = 'Block'; % Options: 'Block', 'Comb'
+conf.channel_type = 'Block'; % Options: 'Block', 'Block_Viterbi', Comb
+conf.training_method = ''; % Options: 'Block', 'Comb'
 
 conf.comb_insertion_rate = 4; % Example: 1 pilot every 4 subcarriers
 

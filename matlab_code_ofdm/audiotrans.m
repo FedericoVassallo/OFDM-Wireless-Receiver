@@ -31,7 +31,12 @@ conf.ofdm.ncarrier  = 512;
 conf.ofdm.cplen     = 256;
 conf.modulation_order = 2; % 2 for QPSK
 conf.channel_type = 'Comb'; % Options: 'Block', 'Block_Viterbi', Comb
-conf.training_method = 'Comb'; % Options: 'Block', 'Comb'
+
+if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type, 'Block_Viterbi'))
+    conf.training_method = 'Block'; % Options: 'Block', 'Comb'
+elseif strcmp(conf.channel_type, 'Comb')
+    conf.training_method = 'Comb';
+end
 
 conf.comb_insertion_rate = 4; % Example: 1 pilot every 4 subcarriers
 
