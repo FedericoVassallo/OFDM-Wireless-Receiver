@@ -53,7 +53,6 @@ conf.ofdm.os_factor = conf.f_s/(conf.ofdm.ncarrier*conf.ofdm.spacing);
 conf.sc.txpulse_length = 20*conf.sc.os_factor;
 conf.sc.txpulse    = rrc(conf.sc.os_factor,0.22,conf.sc.txpulse_length);
 
-%% 2. Image Loading and Encoding
 fprintf('Start Image Transmission\n');
 
 % Load Image
@@ -153,3 +152,4 @@ figure(findobj('Name', 'Image Comparison'));
 subplot(1,2,2);
 imshow(img_rx);
 title(sprintf('Received (BER: %.2f%%)', ber*100));
+
