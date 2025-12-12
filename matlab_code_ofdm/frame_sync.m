@@ -2,7 +2,7 @@ function beginning_of_data = frame_sync(rx_signal, conf)
 
 rolloff = 0.22;
 L = conf.sc.os_factor;
-detection_threshold = 100;
+detection_threshold = 70;
 
 %% Define the pulse
 pulse = rrc(L, rolloff, conf.sc.txpulse_length * L);

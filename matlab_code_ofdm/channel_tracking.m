@@ -210,18 +210,46 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     
     % --- 3. Generate Plots ---
 
-    % PLOT 1: Power Delay Profile (Zoomed)
-    figure('Name', 'Task 3: Power Delay Profile');
-    plot(time_axis_pdp, 10*log10(pdp), 'LineWidth', 1.5);
-    xlabel('Delay (s)');
-    ylabel('Power (dB)');
-    title('Power Delay Profile (Zoomed)');
-    grid on; 
+    % --- CALCULATION & FILTERING ---
     
-    % [ADDED] Limit x-axis to the first 20% of the duration
-    % This focuses the view on the relevant multipath components.
-    max_lag_time = time_axis_pdp(end);
-    xlim([0, max_lag_time * 0.2]); 
+    % 1. Calculate Linear Normalized PDP (Sum = 1)
+    pdp_linear = pdp / sum(pdp);
+    
+    % 2. Define Threshold (1% of the Maximum Peak)
+    peak_val = max(pdp_linear);
+    threshold = 0.001 * peak_val;
+    
+    % 3. Filter: Keep only indices where power >= threshold
+    valid_idxs = pdp_linear >= threshold;
+    
+    % Extract the "Clean" Data
+    time_clean = time_axis_pdp(valid_idxs);
+    pdp_lin_clean = pdp_linear(valid_idxs);
+    
+    % 4. Convert to dB (using only the clean values)
+    pdp_db_clean = 10*log10(pdp_lin_clean);
+    
+    % Determine dynamic range for the plot
+    % The lowest bar corresponds to our 1% threshold (-20 dB relative to peak)
+    max_db = max(pdp_db_clean);
+    min_db = min(pdp_db_clean) - 2; % Add 2dB margin below the smallest tap
+
+    % --- PLOT 1: Discrete PDP (Logarithmic / dB) - CLEAN ---
+    figure('Name', 'Task 3: PDP (Logarithmic - Significant Taps Only)');
+    
+    stem(time_clean, pdp_db_clean, 'BaseValue', min_db, ...
+        'MarkerFaceColor', 'b', 'LineWidth', 1.5, 'MarkerSize', 6);
+    
+    grid on;
+    title('PDP');
+    ylabel('Power (dB)');
+    xlabel('Delay (s)');
+    
+    % Force zoom to the interval 0 - 0.05s
+    xlim([0, 0.025]);
+    
+    % Set y-axis to show the noise floor clearly
+    ylim([min_db, max_db + 2]); 
     
     % PLOT 2: Average Frequency Response
     figure('Name', 'Task 3: Channel Frequency Response');
