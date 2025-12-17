@@ -114,7 +114,7 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
             %theta_hat_matrix(:,j) = mod(0.01*theta_hat_correct + 0.99*theta_hat_prev, 2*pi);
 
             % TRY THIS: More responsive filter
-            alpha = 0.01; % Weight for the new measurement
+            alpha = 0.8; % Weight for the new measurement
             theta_hat_matrix(:,j) = mod(alpha*theta_hat_correct + (1-alpha)*theta_hat_prev, 2*pi);
           
             % [NEW] Reconstruct the full complex channel for this specific symbol
@@ -215,41 +215,48 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     % 1. Calculate Linear Normalized PDP (Sum = 1)
     pdp_linear = pdp / sum(pdp);
     
-    % 2. Define Threshold (1% of the Maximum Peak)
+    % 2. Define Threshold (0.1% of the Maximum Peak)
     peak_val = max(pdp_linear);
     threshold = 0.001 * peak_val;
     
     % 3. Filter: Keep only indices where power >= threshold
     valid_idxs = pdp_linear >= threshold;
     
+    % Create Taps Axis (Samples)
+    taps_axis = (0 : conf.ofdm.ncarrier - 1).';
+    
     % Extract the "Clean" Data
-    time_clean = time_axis_pdp(valid_idxs);
+    taps_clean = taps_axis(valid_idxs);
     pdp_lin_clean = pdp_linear(valid_idxs);
     
-    % 4. Convert to dB (using only the clean values)
+    % 4. Convert to dB
     pdp_db_clean = 10*log10(pdp_lin_clean);
     
-    % Determine dynamic range for the plot
-    % The lowest bar corresponds to our 1% threshold (-20 dB relative to peak)
+    % Determine dynamic range
     max_db = max(pdp_db_clean);
-    min_db = min(pdp_db_clean) - 2; % Add 2dB margin below the smallest tap
+    min_db = min(pdp_db_clean) - 2; 
 
-    % --- PLOT 1: Discrete PDP (Logarithmic / dB) - CLEAN ---
-    figure('Name', 'Task 3: PDP (Logarithmic - Significant Taps Only)');
+    % --- PLOT 1: Discrete PDP (Taps vs CP Limit) ---
+    figure('Name', 'Task 3: PDP vs Cyclic Prefix');
     
-    stem(time_clean, pdp_db_clean, 'BaseValue', min_db, ...
+    stem(taps_clean, pdp_db_clean, 'BaseValue', min_db, ...
         'MarkerFaceColor', 'b', 'LineWidth', 1.5, 'MarkerSize', 6);
     
+    hold on;
+    % Simple Red Line at CP Length
+    xline(conf.ofdm.cplen, '--r', 'Cyclic Prefix', 'LineWidth', 2);
+    hold off;
+    
     grid on;
-    title('PDP');
+    title('Channel Impulse Response (Samples)');
     ylabel('Power (dB)');
-    xlabel('Delay (s)');
+    xlabel('Delay (Taps)');
     
-    % Force zoom to the interval 0 - 0.05s
-    xlim([0, 0.025]);
+    % Zoom: Show from 0 to slightly past the last tap or CP
+    limit_view = conf.ofdm.cplen * 1.2; 
+    xlim([0, limit_view]);
     
-    % Set y-axis to show the noise floor clearly
-    ylim([min_db, max_db + 2]); 
+    ylim([min_db, max_db + 2]);
     
     % PLOT 2: Average Frequency Response
     figure('Name', 'Task 3: Channel Frequency Response');
