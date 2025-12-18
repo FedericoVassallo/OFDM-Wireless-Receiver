@@ -248,7 +248,7 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     hold off;
     
     grid on;
-    title('Channel Impulse Response (Samples)');
+    title('PDP');
     ylabel('Power (dB)');
     xlabel('Delay (Taps)');
     
@@ -257,15 +257,51 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     xlim([0, limit_view]);
     
     ylim([min_db, max_db + 2]);
+
+    % --- PLOT 1B: Discrete PDP (Zoomed on Signal Only) ---
+    figure('Name', 'Task 3: PDP (Signal Zoom)');
+    
+    stem(taps_clean, pdp_db_clean, 'BaseValue', min_db, ...
+        'MarkerFaceColor', 'b', 'LineWidth', 1.5, 'MarkerSize', 6);
+    
+    grid on;
+    title('PDP (Zoomed)');
+    ylabel('Power (dB)');
+    xlabel('Delay (Taps)');
+    
+    % [ZOOM LOGIC] 
+    % Ignore the CP length. Zoom exactly to the last significant tap found.
+    if ~isempty(taps_clean)
+        % Add a small margin (e.g., 5 taps) so the last stem isn't on the edge
+        last_tap_idx = max(taps_clean);
+        xlim([0, 50]); % Hardcoded for chan 5, can be changed
+    else
+        % Fallback if no taps found
+        xlim([0, 10]);
+    end
+    
+    % Maintain the same vertical scale for consistency
+    ylim([min_db, max_db + 2]);
     
     % PLOT 2: Average Frequency Response
     figure('Name', 'Task 3: Channel Frequency Response');
     
+    % Normalize so the mean is 0 dB
+    % Inside the PLOT 2 section
     subplot(2,1,1);
-    plot(freq_axis, 20*log10(abs(H_avg_shifted)), 'LineWidth', 1.5);
+
+    % 1. Calculate Magnitude in dB
+    mag_db = 20*log10(abs(H_avg_shifted));
+    
+    % 2. Normalize so the Maximum is 0 dB (Peak Normalization)
+    % This forces the curve to hang down from 0 dB, matching your reference.
+    mag_db_norm = mag_db - max(mag_db); 
+    
+    plot(freq_axis, mag_db_norm, 'LineWidth', 1.5);
     xlabel('Frequency (Hz)'); ylabel('Magnitude (dB)');
     title('Average Frequency Response (Magnitude)'); 
     grid on; xlim([min(freq_axis) max(freq_axis)]);
+    
     
     subplot(2,1,2);
     % Unwrap removes the discontinuities (+/- pi jumps)
@@ -299,6 +335,38 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     ylabel('Frequency (Hz)');
     title('Channel Phase Evolution [Rad]');
     axis xy;
+
+    % --- PLOT 5: Phase Evolution of a Single Subcarrier (Drift) ---
+    figure('Name', 'Task 3: Phase Evolution (Specific Subcarrier)');
+    
+    % 1. Select the Subcarrier to Track (e.g., Central Subcarrier)
+    m0 = round(conf.ofdm.ncarrier / 2); 
+    
+    % 2. Extract the Complex Channel for this specific subcarrier
+    h_m0 = H_evolution(m0, :);
+    
+    % [FIX] Truncate data to match the shortened sym_axis
+    % We previously removed the last symbol from sym_axis to hide the "stain".
+    % We must do the same here.
+    if length(h_m0) > length(sym_axis)
+        h_m0 = h_m0(1 : length(sym_axis));
+    end
+    
+    % 3. Calculate Phase and UNWRAP
+    phase_m0_rad = unwrap(angle(h_m0));
+    
+    % Optional: Start at 0
+    %phase_m0_rad = phase_m0_rad - phase_m0_rad(1);
+
+    % 4. Plot
+    plot(sym_axis, phase_m0_rad, '-o', 'LineWidth', 1.0, 'MarkerSize', 4);
+    grid on;
+    
+    % Formatting
+    title(sprintf('Phase Evolution, m_0 = %d', m0));
+    xlabel('OFDM Symbol Index n');
+    ylabel(sprintf('angle(H(m_0,n)) [rad]'));
+   
 end
 
 end
