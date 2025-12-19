@@ -101,3 +101,53 @@ rxsignal2 = double(rawrx2) / double(intmax('int16'));
 res.biterrors = sum(rxbits ~= txbits);
 ber = res.biterrors/length(rxbits);
 fprintf('Diversity BER: %.4f\n', ber);
+
+% ... [Keep everything before "Call Diversity Receiver" unchanged] ...
+
+%% --- VALIDATION & COMPARISON ---
+
+fprintf('\n--------------------------------------\n');
+fprintf('       DIVERSITY VALIDATION\n');
+fprintf('--------------------------------------\n');
+
+% 1. PROCESS MIC 1 ONLY (Standard RX)
+fprintf('Processing Mic 1 (Single Channel)...\n');
+[rxbits1, ~] = rxofdm(rxsignal1, conf); 
+ber1 = sum(rxbits1 ~= txbits) / length(rxbits1);
+
+% 2. PROCESS MIC 2 ONLY (Standard RX)
+fprintf('Processing Mic 2 (Single Channel)...\n');
+[rxbits2, ~] = rxofdm(rxsignal2, conf); 
+ber2 = sum(rxbits2 ~= txbits) / length(rxbits2);
+
+% 3. PROCESS DIVERSITY (MRC)
+fprintf('Processing Diversity (MRC Combined)...\n');
+[rxbits_div, ~] = rxofdm_diversity(rxsignal1, rxsignal2, conf);
+ber_div = sum(rxbits_div ~= txbits) / length(rxbits_div);
+
+% --- REPORT RESULTS ---
+fprintf('\n--------------------------------------\n');
+fprintf('RESULTS:\n');
+fprintf('Mic 1 (Internal) BER : %.2f%%\n', ber1 * 100);
+fprintf('Mic 2 (USB)      BER : %.2f%%\n', ber2 * 100);
+fprintf('Diversity (MRC)  BER : %.2f%%\n', ber_div * 100);
+fprintf('--------------------------------------\n');
+
+% --- GAIN CALCULATION ---
+best_single = min(ber1, ber2);
+if ber_div < best_single
+    fprintf('SUCCESS: Diversity improved performance by %.2f%% over the best single mic.\n', ...
+        (best_single - ber_div)*100);
+elseif ber_div == best_single
+    fprintf('NEUTRAL: Diversity equaled the best single mic.\n');
+else
+    fprintf('FAIL: Diversity performed worse. Check synchronization or noise levels.\n');
+end
+
+% --- VISUALIZATION ---
+figure('Name', 'Diversity Comparison');
+bar([ber1*100, ber2*100, ber_div*100]);
+set(gca, 'XTickLabel', {'Mic 1 Only', 'Mic 2 Only', 'Diversity (MRC)'});
+ylabel('Bit Error Rate (%)');
+title('Performance Comparison');
+grid on;
