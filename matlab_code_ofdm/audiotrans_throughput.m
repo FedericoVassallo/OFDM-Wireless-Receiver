@@ -1,72 +1,54 @@
 % % % % % % % % % % % % %
-% Wireless Receivers: algorithms and architectures
-% Throughput Analysis: LUDICROUS MODE
-%
-% Objectives:
-% 1. Shift carrier to 12kHz to maximize available spectrum.
-% 2. Push Bandwidth to 16kHz (System Hardware Limit).
-% 3. Remove Cyclic Prefix entirely to find the "Breaking Point".
+% 
 
 clear all;
 close all;
 clc;
 
-% % % % % % % % % % % % % % % % % % % % % % % % % % %
-% 1. DEFINE EXTREME SCENARIOS
-% % % % % % % % % % % % % % % % % % % % % % % % % % %
-
-% Scenario 1: The "Safe" Maximum
+%% Scenario 1: 
 % fc=12k, BW=16k. Signal spans 4k-20k.
-scenarios(1) = struct('name', 'Ultra (16k, CP128)', 'fc', 12000, 'bw', 16000, 'cp', 128);
+scenarios(1) = struct('name', 'Step 1 (16k, CP128)', 'fc', 12000, 'bw', 16000, 'cp', 128);
 
-% Scenario 2: Aggressive Overhead Reduction
-% Reducing CP to ~2ms.
-scenarios(2) = struct('name', 'Hyper (16k, CP32)',  'fc', 12000, 'bw', 16000, 'cp', 32);
+%% Scenario 2
+% Reducing CP 
+scenarios(2) = struct('name', 'Step 2 (16k, CP32)',  'fc', 12000, 'bw', 16000, 'cp', 32);
 
-% Scenario 3: Theoretical Maximum (Zero Protection)
-% CP=0. If this works, your channel is perfect (no echoes).
+%% Scenario 3: Zero Protection
+% CP=0.
 % Throughput = 32,000 bps (QPSK).
-scenarios(3) = struct('name', 'Ludicrous (16k, CP0)', 'fc', 12000, 'bw', 16000, 'cp', 0);
-
-% % % % % % % % % % % % % % % % % % % % % % % % % % %
-% 2. GLOBAL CONFIGURATION
-% % % % % % % % % % % % % % % % % % % % % % % % % % %
+scenarios(3) = struct('name', 'Step 3 (16k, CP0)', 'fc', 12000, 'bw', 16000, 'cp', 0);
 
 conf.audiosystem = 'audio'; 
-conf.emulator_idx = 5;       % 1=Static, 5=Severe Multipath (Try 5 to force errors!)
+conf.emulator_idx = 5;      
 conf.emulator_snr = 40;
 conf.f_s     = 48000;
 conf.bitsps  = 16;
-
-% Standard Preamble (Must remain robust)
+ 
 conf.sc.f_sym = 1000;
 conf.sc.nsyms = 500;
 conf.sc.os_factor  = conf.f_s/conf.sc.f_sym;
 conf.sc.txpulse_length = 20*conf.sc.os_factor;
 conf.sc.txpulse    = rrc(conf.sc.os_factor, 0.22, conf.sc.txpulse_length);
 
-% OFDM Base
 conf.ofdm.ncarrier  = 512;
-conf.channel_type = 'Block'; 
+conf.channel_type = 'Block_Viterbi'; 
 conf.training_method = 'Block'; 
 
 fprintf('--------------------------------------------------------------------------------------------\n');
 fprintf('| %-20s | %-10s | %-12s | %-10s | %-10s |\n', 'Scenario', 'Bandwidth', 'Throughput', 'BER (%)', 'Status');
 fprintf('--------------------------------------------------------------------------------------------\n');
 
-% % % % % % % % % % % % % % % % % % % % % % % % % % %
-% 3. ANALYSIS LOOP
-% % % % % % % % % % % % % % % % % % % % % % % % % % %
+
+%% Loop for analysis 
 
 for i = 1:length(scenarios)
     s = scenarios(i);
     
-    % --- Apply Dynamic Configuration ---
     conf.f_c            = s.fc;   % Shift Center Frequency
     conf.ofdm.bandwidth = s.bw;   % Maximize Bandwidth
     conf.ofdm.cplen     = s.cp;   % Minimize Overhead
     
-    % Recalculate dependent parameters
+    % Recalculate parameters
     conf.ofdm.spacing   = conf.ofdm.bandwidth / conf.ofdm.ncarrier;
     conf.ofdm.os_factor = conf.f_s / (conf.ofdm.ncarrier * conf.ofdm.spacing);
     
@@ -75,10 +57,9 @@ for i = 1:length(scenarios)
     conf.nbits = 100 * bits_per_symbol;
     txbits = randi([0 1], conf.nbits, 1);
     
-    % --- TRANSMIT ---
+    %% Transmission
     [txsignal, conf] = txofdm(txbits, conf);
     
-    % --- CHANNEL ---
     rawtxsignal = [ zeros(conf.f_s,1) ; txsignal ; zeros(conf.f_s,1) ];
     rawtxsignal = [ rawtxsignal zeros(size(rawtxsignal)) ];
 
@@ -96,7 +77,7 @@ for i = 1:length(scenarios)
             rxsignal = double(rxsignal)/double(intmax('int16'));
     end
     
-    % --- RECEIVE ---
+    %% Receive
     try
         [rxbits, conf] = rxofdm(rxsignal, conf);
         
@@ -107,12 +88,12 @@ for i = 1:length(scenarios)
         ber = 1.0; % Sync failure
     end
     
-    % --- METRICS ---
+    %% Metrics
     % Throughput = Data Bits / (T_symbol + T_cp)
     T_total = (conf.ofdm.ncarrier + conf.ofdm.cplen) / conf.ofdm.bandwidth;
     throughput_val = bits_per_symbol / T_total;
     
-    % Check Constraints
+    % Check if we managed to have a BER < 10 %
     if ber < 0.10
         status = 'PASS';
     else
