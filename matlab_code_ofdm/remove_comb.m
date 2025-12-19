@@ -1,8 +1,4 @@
 function [data_only_matrix] = remove_comb(frame_matrix, conf)
-% REMOVE_TRAINING: Removes interleaved pilot rows (Comb) from the matrix
-% INPUT: frame_matrix = Equalized OFDM matrix (rows=subcarriers)
-%        conf = configuration structure
-% OUTPUT: data_only_matrix = Matrix containing only data subcarriers
 
     % Define indices of the pilots (Training Symbols)
     % These must match the insertion logic in comb_training.m
