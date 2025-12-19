@@ -2,21 +2,19 @@ function [rxbits, conf] = rxofdm_diversity(rxsignal1, rxsignal2, conf)
 % RXOFDM_DIVERSITY
 %   Processes two received signals and combines them.
 
-%% 1. Independent Pre-processing
+%% Independent Pre-processing
 % We must process both signals independently up to the FFT stage
-% because they have different time-of-flight (synchronization) and phase.
 
-% --- PROCESS SIGNAL 1 ---
+% PROCESS SIGNAL 1
 [rx_matrix_freq1, conf] = preprocess_chain(rxsignal1, conf, 'RX 1');
 
-% --- PROCESS SIGNAL 2 ---
+% PROCESS SIGNAL 2 
 [rx_matrix_freq2, conf] = preprocess_chain(rxsignal2, conf, 'RX 2');
 
-%% 2. Joint Channel Tracking & Combining (MRC)
-% This is where the magic happens. We pass both matrices.
+%% Joint Channel Tracking and Combining (MRC)
 rx_matrix_eq = channel_tracking_diversity(rx_matrix_freq1, rx_matrix_freq2, conf);
 
-%% 3. Remove Training & Serialize (Standard)
+%% Remove Training & Serialize (Standard)
 if strcmp(conf.training_method, 'Comb')
     rx_data_matrix = remove_comb(rx_matrix_eq, conf);
 elseif strcmp(conf.training_method, 'Block')
@@ -47,7 +45,7 @@ title('Diversity Combined Constellation'); grid on; axis square;
 end
 
 function [OFDM_rx_matrix_freq, conf] = preprocess_chain(rxsignal, conf, label)
-    % Helper to do Sync -> Downconv -> Resample -> FFT for one branch
+    % Sync, Downconv, Resample, FFT for one branch
     
     fprintf('Processing %s...\n', label);
     
@@ -59,7 +57,7 @@ function [OFDM_rx_matrix_freq, conf] = preprocess_chain(rxsignal, conf, label)
     f_cutoff = conf.ofdm.bandwidth + 0.05 * conf.ofdm.bandwidth;
     rx_filt = ofdmlowpass(rx_down, conf, f_cutoff);
     
-    % Synchronization (Independent for each mic!)
+    % Synchronization (Independent for each mic)
     start_idx = frame_sync(rx_filt, conf);
     start_idx = max(1, start_idx - 20); % Safety margin
     

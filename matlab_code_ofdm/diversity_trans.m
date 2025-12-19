@@ -5,12 +5,11 @@ clear all;
 close all;
 clc;
 
-% --- DIVERSITY CONFIGURATION ---
-% Run 'audiodevinfo' in Command Window to find your Device IDs
-% Set these to your specific microphone IDs
+% DIVERSITY CONFIGURATION
+% Set these specific microphone IDs
 mic1_id = 1; % e.g., Laptop Internal Mic
 mic2_id = 2; % e.g., USB Microphone
-% -------------------------------
+
 
 % Configuration Values
 conf.audiosystem = 'audio'; % Diversity only makes sense with real audio
@@ -29,7 +28,7 @@ conf.ofdm.bandwidth = 2000;
 conf.ofdm.ncarrier  = 512;
 conf.ofdm.cplen     = 256;
 conf.modulation_order = 2; 
-conf.channel_type = 'Comb'; % Comb is recommended for diversity/drift
+conf.channel_type = 'Comb'; 
 conf.training_method = 'Comb';
 conf.comb_insertion_rate = 4; 
 
@@ -59,7 +58,7 @@ conf.txbits = txbits; % Save for BER calculation
 rawtxsignal = [ zeros(conf.f_s,1) ; txsignal ; zeros(conf.f_s,1) ];
 rawtxsignal = [  rawtxsignal  zeros(size(rawtxsignal)) ];
 
-% --- DIVERSITY RECORDING ---
+%DIVERSITY RECORDING
 disp('Setting up Recorders...');
 try
     recobj1 = audiorecorder(conf.f_s, conf.bitsps, 1, mic1_id);
@@ -75,7 +74,7 @@ pause;
 disp('Recording on both channels...');
 record(recobj1);
 record(recobj2);
-pause(0.5); % Brief buffer
+pause(0.5);
 
 disp('Playing Signal...');
 playobj = audioplayer(rawtxsignal, conf.f_s, conf.bitsps);
@@ -94,10 +93,9 @@ rawrx2 = getaudiodata(recobj2, 'int16');
 rxsignal1 = double(rawrx1) / double(intmax('int16'));
 rxsignal2 = double(rawrx2) / double(intmax('int16'));
 
-% ---------------------------
 
 % Call Diversity Receiver
-% We pass BOTH signals to the new receiver function
+% We pass both signals to the new receiver function
 [rxbits, conf] = rxofdm_diversity(rxsignal1, rxsignal2, conf);
 
 res.biterrors = sum(rxbits ~= txbits);

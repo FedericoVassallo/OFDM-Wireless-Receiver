@@ -11,7 +11,6 @@ function [rxbits, conf] = rxofdm(rxsignal,conf)
 %
 %% Receiver Parameters
 txbis = conf.txbits;
-
 %% Downconversion
 % Define the time frame
 time = 0:(1/conf.f_s) : size(rxsignal,1)/conf.f_s - (1/conf.f_s);
@@ -27,18 +26,14 @@ OFDM_start = frame_sync(rx_signal_filtered, conf);
 % Back off by a margin to ensure we are inside the Cyclic Prefix (Early).
 % Being 'Early' = Phase Shift (Fixed by Equalizer).
 % Being 'Late' = ISI (Destroys Signal).
-
 safety_margin = 20; 
 OFDM_start = max(1, OFDM_start - safety_margin);
-
 % ----------------------------
 OFDM_signal_len = conf.OFDM_resampled_length;  
 OFDM_rx_signal = rx_signal_filtered(OFDM_start: OFDM_start + OFDM_signal_len - 1);
-
 %% Resampling
 % 2. Resample from Sound Card rate (fs') to Baseband rate (fs)
 rx_baseband = ofdm_rx_resampling(OFDM_rx_signal, conf);
-
 %% Serial-to-Parallel Conversion (Vectorized) & Remove CP
 % --- FIX 2: ROBUST RESHAPING ---
 nb_symbs = conf.number_OFDM_symb;
@@ -60,7 +55,6 @@ OFDM_rx_matrix_freq = fft(OFDM_rx_matrix_time);
 %% Channel Equalization
 rx_matrix_eq = channel_tracking(OFDM_rx_matrix_freq, conf);
 %% Remove Training Symbol & Serialize
-
 % Check which training method was used
 if strcmp(conf.training_method, 'Comb')
     
@@ -77,10 +71,8 @@ elseif strcmp(conf.training_method, 'Block')
     rx_data_matrix = rx_matrix_eq(:, 2:end);
     
 end
-
 %% serialize
 rx_syms_serial = rx_data_matrix(:);
-
 if strcmp(conf.training_method, 'Comb')
     % Calculate number of expected QPSK symbols (2 bits per symbol)
     % Use conf.txbits if available (most robust), otherwise conf.nbits
@@ -89,7 +81,6 @@ if strcmp(conf.training_method, 'Comb')
         rx_syms_serial = rx_syms_serial(1:n_data_symbs);
     end
 end
-
 %% Normalizing
 % Normalize energy before demapping
 rx_syms_norm = rx_syms_serial / mean(abs(rx_syms_serial));
@@ -97,12 +88,24 @@ rx_syms_norm = rx_syms_serial / mean(abs(rx_syms_serial));
 rxbits = demapper(rx_syms_norm);
 
 %% Plotting the Constellation (Optional - Final)
+% --- NEW: Calculate Global BER ---
+% Determine the length to compare (avoid index out of bounds)
+n_bits_compare = min(length(txbis), length(rxbits));
+
+% Compute errors
+bit_errors_final = sum(rxbits(1:n_bits_compare) ~= txbis(1:n_bits_compare));
+ber_final = bit_errors_final / n_bits_compare;
+% ---------------------------------
+
 figure; 
 plot(real(rx_syms_norm), imag(rx_syms_norm), '.'); 
 hold on;
 ideal_constellation = qammod(0:3, 4, 'UnitAveragePower', true);
 plot(real(ideal_constellation), imag(ideal_constellation), 'rx', 'LineWidth', 2);
-title('RX Constellation (Final)');
+
+% Add BER to Title using sprintf
+title(sprintf('RX Constellation (Final)\nBER: %.4f', ber_final));
+
 grid on; axis square; 
 hold off;
 
@@ -110,10 +113,8 @@ hold off;
 figure('Name', 'RX Constellation Evolution'); 
 % Ideal constellation for QPSK/4-QAM
 ideal_constellation = qammod(0:3, 4, 'UnitAveragePower', true);
-
 % Total received symbols
 N = length(rx_syms_norm);
-
 % Define ranges
 idx_groups = { ...
     1:min(1024, N), ...          
@@ -121,13 +122,11 @@ idx_groups = { ...
     1:min(4096, N), ...          
     1:min(5120, N), ...            
 };
-
 base_titles = {'First 2 OFDM Symbols', 'First 4 OFDM Symbols', ...
                'First 8 OFDM Symbols', 'First 10 OFDM Symbols'};
            
 % Parameters for BER calculation (QPSK = 2 bits per symbol)
 bits_per_symbol = 2; 
-
 for k = 1:4
     subplot(2, 2, k);
     
