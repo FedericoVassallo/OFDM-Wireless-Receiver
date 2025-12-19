@@ -11,7 +11,7 @@ clc;
 % Options for transmission are : 
 % emulator: use a channel emulator with 5 different configurations.
 % audio: use the loudspeaker and microphone for the data transmission
-conf.audiosystem = 'emulator'; 
+conf.audiosystem = 'audio'; 
 
 %Emulator configuration
 conf.emulator_idx = 4; % 1 to 5 yields different channels
@@ -30,8 +30,8 @@ conf.ofdm.bandwidth = 2000; %f_s/bw should be an integer for resampling
 conf.ofdm.ncarrier  = 512;
 conf.ofdm.cplen     = 256;
 conf.modulation_order = 2; % 2 for QPSK
-conf.channel_type = 'Comb'; % Options: 'Block', 'Block_Viterbi'
-conf.training_method = 'Comb'; % Options: 'Block', 'Comb'
+conf.channel_type = 'Block_Viterbi'; % Options: 'Block', 'Block_Viterbi'
+conf.training_method = 'Block'; % Options: 'Block', 'Comb'
 
 conf.comb_insertion_rate = 4; % Example: 1 pilot every 4 subcarriers
    
@@ -125,10 +125,10 @@ switch(conf.audiosystem)
 
 end
 
-%% 5. Receiver (OFDM)
+%% Receiver 
 [rxbits_raw, conf] = rxofdm(rxsignal, conf);
 
-%% 6. Image Decoding and BER Calculation
+%% Image Decoding and BER Calculation
 % Truncate received bits to expected length
 if length(rxbits_raw) >= conf.nbits
     rxbits = rxbits_raw(1:conf.nbits);
