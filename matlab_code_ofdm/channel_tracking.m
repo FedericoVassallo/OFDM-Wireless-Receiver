@@ -12,17 +12,14 @@ nb_tot_symbs = size(rx_matrix, 2);
 % Use the training symbol defined in txofdm.m
 training = conf.ofdm.training_symbol; 
 
-% Initialize storage
+%% Initialize vectors
 h_hat = zeros(conf.ofdm.ncarrier, 1); 
 rx_matrix_equalized = zeros(size(rx_matrix));
 
-% [NEW] Matrix to store the complex Channel Estimate for every symbol
-% Dimensions: (Subcarriers x Time)
+%% Matrix to store the complex Channel Estimate for every symbol (Subcarriers x Time)
 H_evolution = zeros(conf.ofdm.ncarrier, nb_tot_symbs); 
 
-% -------------------------------------------------------------------------
-% Case 1: Block Channel (Static over the frame/block)
-% -------------------------------------------------------------------------
+%% Case Block Channel 
 if strcmp(conf.channel_type, 'Block')
 
     % At every loop we work on a training symbol + all the data symbols between it
@@ -56,9 +53,9 @@ if strcmp(conf.channel_type, 'Block')
 
     end
 
-% -------------------------------------------------------------------------
-% Case 2: Block Viterbi (Phase Tracking)
-% -------------------------------------------------------------------------
+
+%% Case Block_Viterbi (Phase Tracking)
+
 elseif strcmp(conf.channel_type, 'Block_Viterbi') 
     % Tracks rotation given to the symbols by phase noise
 
@@ -113,11 +110,11 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
             % Filter the phase obtained (0.01 new + 0.99 old)
             %theta_hat_matrix(:,j) = mod(0.01*theta_hat_correct + 0.99*theta_hat_prev, 2*pi);
 
-            % TRY THIS: More responsive filter
+            % More responsive filter
             alpha = 0.8; % Weight for the new measurement
             theta_hat_matrix(:,j) = mod(alpha*theta_hat_correct + (1-alpha)*theta_hat_prev, 2*pi);
           
-            % [NEW] Reconstruct the full complex channel for this specific symbol
+            % Reconstruct the complex channel for this specific symbol
             % H_current = |H_training| * exp(j * tracked_phase)
             H_current = abs(H_hat) .* exp(1i * theta_hat_matrix(:,j));
             H_evolution(:, j) = H_current;
@@ -127,56 +124,50 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
         end
     end
 
-% -------------------------------------------------------------------------
-% Case 3: Comb Pilot (Linear Interpolation)
-% -------------------------------------------------------------------------
+%% Case Comb Pilot (Linear Interpolation)
+
 elseif strcmp(conf.channel_type, 'Comb') 
     
-    % Pre-calculate pilot indices (they are the same for every symbol)
-    % The spacing is defined by comb_insertion_rate (e.g., 4)
-    % Pilot indices: 1, 6, 11... if rate is 4 (spacing of 5)
+    % Calculate pilot indices
+    % The spacing is defined by comb_insertion_rate (4)
     pilot_spacing = conf.comb_insertion_rate + 1;
     pilot_idxs = (1 : pilot_spacing : conf.ofdm.ncarrier).';
     
-    % Target indices: We want the channel at ALL subcarriers (1 to N)
     all_idxs = (1 : conf.ofdm.ncarrier).';
 
     for i = 1 : size(rx_matrix, 2)
         symb = rx_matrix(:, i);
         
-        % 1. Extract the Received Pilots
+        % Extract the Received Pilots
         Y = symb(pilot_idxs);
         
-        % 2. LS Estimation at Pilot locations
+        % Estimation at Pilot locations
         % H_hat = Y_pilot / X_pilot
         H_hat_pilots = Y ./ conf.training_comb;
 
-        % 3. Linear Interpolation
+        % Linear Interpolation
         % We interpolate from the known 'pilot_idxs' to 'all_idxs'.
-        % 'linear': Fits a straight line between pilot points.
-        % 'extrap': Extends the slope for subcarriers beyond the last pilot.
+        % using the linear sp a straight line between pilot points.
+        % 'extrap' is used to extends the slope for subcarriers beyond the last pilot.
         H_interpolated = interp1(pilot_idxs, H_hat_pilots, all_idxs, 'linear', 'extrap');
 
-        % 4. Equalization
-        % Divide the received symbol by the interpolated channel estimate
+        % Equalization, we divide the received symbol by the interpolated channel estimate
         rx_matrix_equalized(:, i) = symb ./ H_interpolated;
         
-        % 5. Store for Visualization
+        % Store for visualization
         H_evolution(:, i) = H_interpolated;
     end
 end
     
 %% VISUALIZATION FOR TASK 3
-% Only plot if we have valid data in H_evolution
 if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi') || strcmp(conf.channel_type,'Comb'))
 
-    % --- 1. Define Axes ---
     
     % Frequency Axis: Centered on f_c
     f_spacing = conf.ofdm.bandwidth / conf.ofdm.ncarrier;
     freq_axis = (0 : conf.ofdm.ncarrier-1) * f_spacing - conf.ofdm.bandwidth/2 + conf.f_c;
 
-    % Time Axis for PDP: Starts at 0
+    % Time Axis for PDP Starts at 0
     % Resolution is 1/Bandwidth
     time_res = 1 / conf.ofdm.bandwidth; 
     % Create axis from 0 to (N-1)*dt
@@ -185,15 +176,10 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     % Symbol Index Axis (Time Evolution)
     sym_axis = 1:size(H_evolution, 2);
 
-    % --- 2. Prepare Data ---
-    
-    % A. FREQUENCY DOMAIN
     % Shift data so DC component is in the center of the array
     H_evol_shifted = fftshift(H_evolution, 1); 
         
-    % [FIX] Remove the last symbol from the plot only:
-    % The last symbol often contains zero-padding which creates 
-    % estimation artifacts ("stains"), even if the data is valid.
+    % Remove the last symbol from the plot only
     H_evol_shifted = H_evol_shifted(:, 1:end-1);
     
     % Adjust the time axis to match the new size
@@ -201,42 +187,37 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
 
     H_avg_shifted  = mean(H_evol_shifted, 2);
 
-    % B. TIME DOMAIN (Power Delay Profile)
-    % 1. Take IFFT of raw H (before shift) to get impulse response
+    % Time Domain (Power Delay Profile)
+    % Take IFFT of raw H (before shift) to get impulse response
     h_impulse_time = ifft(H_evolution, [], 1);
     
-    % [MODIFIED] Do NOT shift. Index 1 is Delay 0.
     pdp = mean(abs(h_impulse_time).^2, 2); 
     
-    % --- 3. Generate Plots ---
-
-    % --- CALCULATION & FILTERING ---
-    
-    % 1. Calculate Linear Normalized PDP (Sum = 1)
+    % Calculate Linear Normalized PDP (Sum = 1)
     pdp_linear = pdp / sum(pdp);
     
-    % 2. Define Threshold (0.1% of the Maximum Peak)
+    % Define Threshold (0.1% of the Maximum Peak)
     peak_val = max(pdp_linear);
     threshold = 0.001 * peak_val;
     
-    % 3. Filter: Keep only indices where power >= threshold
+    % Keep only indices where power >= threshold
     valid_idxs = pdp_linear >= threshold;
     
     % Create Taps Axis (Samples)
     taps_axis = (0 : conf.ofdm.ncarrier - 1).';
     
-    % Extract the "Clean" Data
+    % Extract the Data
     taps_clean = taps_axis(valid_idxs);
     pdp_lin_clean = pdp_linear(valid_idxs);
     
-    % 4. Convert to dB
+    % Convert to dB
     pdp_db_clean = 10*log10(pdp_lin_clean);
     
     % Determine dynamic range
     max_db = max(pdp_db_clean);
     min_db = min(pdp_db_clean) - 2; 
 
-    % --- PLOT 1: Discrete PDP (Taps vs CP Limit) ---
+    % Plot 1: Discrete PDP (Taps vs CP Limit) 
     figure('Name', 'Task 3: PDP vs Cyclic Prefix');
     
     stem(taps_clean, pdp_db_clean, 'BaseValue', min_db, ...
@@ -252,13 +233,12 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     ylabel('Power (dB)');
     xlabel('Delay (Taps)');
     
-    % Zoom: Show from 0 to slightly past the last tap or CP
     limit_view = conf.ofdm.cplen * 1.2; 
     xlim([0, limit_view]);
     
     ylim([min_db, max_db + 2]);
 
-    % --- PLOT 1B: Discrete PDP (Zoomed on Signal Only) ---
+    % Plot 1B: Discrete PDP (Zoomed on Signal Only) 
     figure('Name', 'Task 3: PDP (Signal Zoom)');
     
     stem(taps_clean, pdp_db_clean, 'BaseValue', min_db, ...
@@ -269,7 +249,6 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     ylabel('Power (dB)');
     xlabel('Delay (Taps)');
     
-    % [ZOOM LOGIC] 
     % Ignore the CP length. Zoom exactly to the last significant tap found.
     if ~isempty(taps_clean)
         % Add a small margin (e.g., 5 taps) so the last stem isn't on the edge
@@ -283,17 +262,17 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     % Maintain the same vertical scale for consistency
     ylim([min_db, max_db + 2]);
     
-    % PLOT 2: Average Frequency Response
+    % Plot 2: Average Frequency Response
     figure('Name', 'Task 3: Channel Frequency Response');
     
     % Normalize so the mean is 0 dB
-    % Inside the PLOT 2 section
+    % Inside the Ploz 2 section
     subplot(2,1,1);
 
-    % 1. Calculate Magnitude in dB
+    % Calculate Magnitude in dB
     mag_db = 20*log10(abs(H_avg_shifted));
     
-    % 2. Normalize so the Maximum is 0 dB (Peak Normalization)
+    % Normalize so the Maximum is 0 dB (Peak Normalization)
     % This forces the curve to hang down from 0 dB, matching your reference.
     mag_db_norm = mag_db - max(mag_db); 
     
@@ -310,7 +289,7 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     title('Average Frequency Response (Phase)'); 
     grid on; xlim([min(freq_axis) max(freq_axis)]);
 
-    % PLOT 3: Channel Magnitude Evolution (Spectrogram)
+    % Plot 3: Channel Magnitude Evolution (Spectrogram)
     figure('Name', 'Task 3: Channel Magnitude Evolution');
     imagesc(sym_axis, freq_axis, 20*log10(abs(H_evol_shifted)));
     colorbar;
@@ -319,16 +298,16 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     title('Channel Magnitude Evolution [dB]');
     axis xy; 
 
-    % PLOT 4: Channel Phase Evolution
+    % Plot 4: Channel Phase Evolution
     figure('Name', 'Task 3: Channel Phase Evolution');
     
-    % 1. Unwrap along Frequency (Dim 1)
+    % Unwrap along Frequency (Dim 1)
     phase_unwrapped = unwrap(angle(H_evol_shifted), [], 1);
     
-    % 2. Unwrap along Time (Dim 2)
+    % Unwrap along Time (Dim 2)
     phase_unwrapped = unwrap(phase_unwrapped, [], 2);
     
-    % 3. Plot
+    % Plot
     imagesc(sym_axis, freq_axis, phase_unwrapped);
     colorbar;
     xlabel('OFDM Symbol Index (Time)');
@@ -336,29 +315,24 @@ if (strcmp(conf.channel_type,'Block') || strcmp(conf.channel_type,'Block_Viterbi
     title('Channel Phase Evolution [Rad]');
     axis xy;
 
-    % --- PLOT 5: Phase Evolution of a Single Subcarrier (Drift) ---
+    % Plot 5: Phase Evolution of a Single Subcarrier (Drift) ---
     figure('Name', 'Task 3: Phase Evolution (Specific Subcarrier)');
     
-    % 1. Select the Subcarrier to Track (e.g., Central Subcarrier)
+    % Select the Subcarrier to Track (e.g., Central Subcarrier)
     m0 = round(conf.ofdm.ncarrier / 2); 
     
-    % 2. Extract the Complex Channel for this specific subcarrier
+    % Extract the Complex Channel for this specific subcarrier
     h_m0 = H_evolution(m0, :);
     
-    % [FIX] Truncate data to match the shortened sym_axis
-    % We previously removed the last symbol from sym_axis to hide the "stain".
-    % We must do the same here.
+    % Truncate data to match the shortened sym_axis
     if length(h_m0) > length(sym_axis)
         h_m0 = h_m0(1 : length(sym_axis));
     end
     
-    % 3. Calculate Phase and UNWRAP
+    % Calculate Phase and unwrap
     phase_m0_rad = unwrap(angle(h_m0));
-    
-    % Optional: Start at 0
-    %phase_m0_rad = phase_m0_rad - phase_m0_rad(1);
 
-    % 4. Plot
+    % Plot
     plot(sym_axis, phase_m0_rad, '-o', 'LineWidth', 1.0, 'MarkerSize', 4);
     grid on;
     
