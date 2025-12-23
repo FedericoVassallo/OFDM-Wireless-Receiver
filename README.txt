@@ -19,5 +19,5 @@ rrc.m                        - Generates Root Raised Cosine filter coefficients 
 rxofdm.m                     - Standard receiver function performing sync, FFT, equalization, and demapping.
 rxofdm_diversity.m           - Diversity receiver function combining signals from two sources using MRC.
 training_generate.m          - Generates the pseudo-random sequence used for pilot symbols.
-
 txofdm.m                     - Standard transmitter function generating the full OFDM signal structure.
+
