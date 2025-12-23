@@ -6,6 +6,8 @@ comb_training.m              - Inserts pilot tones into OFDM symbols for Comb-ba
 demapper.m                   - Demaps complex QPSK symbols into a binary bit stream.
 diversity_trans.m            - Main script for diversity transmission using two microphones (the one of the PC and the USB).
 frame_sync.m                 - Detects the start of the data frame using matched filtering using preamble.
+image.jpg                    - Alternative source image file used for the image transmission demonstration.
+image2.jpg                   - Source image file used for the image transmission demonstration.
 image_decoder.m              - Decodes a received bit stream into an image and displays it.
 imagetrans.m                 - Main script for transmitting and reconstructing an image file.
 matched_filter.m             - Filters the signal with a root-raised cosine pulse for synchronization.
@@ -20,4 +22,5 @@ rxofdm.m                     - Standard receiver function performing sync, FFT, 
 rxofdm_diversity.m           - Diversity receiver function combining signals from two sources using MRC.
 training_generate.m          - Generates the pseudo-random sequence used for pilot symbols.
 txofdm.m                     - Standard transmitter function generating the full OFDM signal structure.
+
 
