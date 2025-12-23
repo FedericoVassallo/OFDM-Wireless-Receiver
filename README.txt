@@ -1,5 +1,5 @@
 audiotrans.m                 - Main script for standard OFDM audio transmission and channel simulation.
-audiotrans_throughput.m      - Main script testing the maximum throughput and BER across different bandwidth and CP scenarios.
+audiotrans_throughput.m      - Main script testing the maximum throughput and BER across different bandwidth and CP.
 channel_tracking.m           - Performs channel estimation and equalization using Block or Comb methods.
 channel_tracking_diversity.m - Implements Maximum Ratio Combining (MRC) for diversity reception.
 comb_training.m              - Inserts pilot tones into OFDM symbols for Comb-based channel estimation.
@@ -19,4 +19,5 @@ rrc.m                        - Generates Root Raised Cosine filter coefficients 
 rxofdm.m                     - Standard receiver function performing sync, FFT, equalization, and demapping.
 rxofdm_diversity.m           - Diversity receiver function combining signals from two sources using MRC.
 training_generate.m          - Generates the pseudo-random sequence used for pilot symbols.
+
 txofdm.m                     - Standard transmitter function generating the full OFDM signal structure.
