@@ -1,20 +1,20 @@
-function [rx_matrix_equalized] = channel_tracking(rx_matrix, conf)
+function [rx_data_equalized] = channel_tracking(rx_data, conf)
 % CHANNEL_TRACKING: Estimation and correction of the channel
 % 
-% INPUT: rx_matrix = matrix storing in each column an OFDM symbol (freq domain).
+% INPUT: rx_data = matrix storing in each column an OFDM symbol (freq domain).
 %        conf = structure storing all our global variables
-% OUTPUT: rx_matrix_equalized = matrix storing in each column the OFDM data
+% OUTPUT: rx_data_equalized = matrix storing in each column the OFDM data
 %         symbols after equalization.
 
-nb_symbs_between_training = conf.number_OFDM_symb; % Entire frame is one block
-nb_tot_symbs = size(rx_matrix, 2); 
+block_len = conf.number_OFDM_symb; % Entire frame is one block
+nb_tot_symbs = size(rx_data, 2); 
 
 % Use the training symbol defined in txofdm.m
 training = conf.ofdm.training_symbol; 
 
 %% Initialize vectors
 h_hat = zeros(conf.ofdm.ncarrier, 1); 
-rx_matrix_equalized = zeros(size(rx_matrix));
+rx_data_equalized = zeros(size(rx_data));
 
 %% Matrix to store the complex Channel Estimate for every symbol (Subcarriers x Time)
 H_evolution = zeros(conf.ofdm.ncarrier, nb_tot_symbs); 
@@ -23,10 +23,10 @@ H_evolution = zeros(conf.ofdm.ncarrier, nb_tot_symbs);
 if strcmp(conf.channel_type, 'Block')
 
     % At every loop we work on a training symbol + all the data symbols between it
-    for i = 1 : nb_symbs_between_training + 1 : nb_tot_symbs
+    for i = 1 : block_len + 1 : nb_tot_symbs
       
         % Extract the training
-        training_rx = rx_matrix(:, i);
+        training_rx = rx_data(:, i);
         
         % Divide the rx training by the original one and get the estimated channel
         H_hat = training_rx ./ training;
@@ -36,20 +36,20 @@ if strcmp(conf.channel_type, 'Block')
         H_evolution(:, i) = H_hat;
         
         % Calculate columns to process in this block
-        cols = i+1 : min(i + nb_symbs_between_training, ...
-            nb_tot_symbs + (i + nb_symbs_between_training == nb_tot_symbs) * realmax);
+        cols = i+1 : min(i + block_len, ...
+            nb_tot_symbs + (i + block_len == nb_tot_symbs) * realmax);
 
         % Apply correction to data symbols
         % For Block fading, we assume H is constant for these symbols
         for k = cols
-            rx_matrix_equalized(:, k) = rx_matrix(:, k) .* exp(-1i * mod(angle(H_hat), 2*pi)) ./ abs(H_hat);
+            rx_data_equalized(:, k) = rx_data(:, k) .* exp(-1i * mod(angle(H_hat), 2*pi)) ./ abs(H_hat);
             
             % Store the same H for these symbols (for visualization)
             H_evolution(:, k) = H_hat;
         end
         
         % Correct the training symbol itself
-        rx_matrix_equalized(:, i) = rx_matrix(:, i) .* exp(-1i * mod(angle(H_hat), 2*pi)) ./ abs(H_hat);
+        rx_data_equalized(:, i) = rx_data(:, i) .* exp(-1i * mod(angle(H_hat), 2*pi)) ./ abs(H_hat);
 
     end
 
@@ -63,13 +63,13 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
     shift = zeros(conf.ofdm.ncarrier, 6) + pi/2*(-1:4);
     
     % Initialize a matrix of phases
-    theta_hat_matrix = zeros(conf.ofdm.ncarrier, nb_tot_symbs);
+    phase_drift_matrix = zeros(conf.ofdm.ncarrier, nb_tot_symbs);
     
     % Loop over every set of symbols training + data
-    for i = 1 : nb_symbs_between_training + 1 : nb_tot_symbs
+    for i = 1 : block_len + 1 : nb_tot_symbs
 
         % Extract the training
-        training_rx = rx_matrix(:, i);
+        training_rx = rx_data(:, i);
         
         % Get the estimated channel from training
         H_hat = training_rx ./ training;
@@ -78,23 +78,23 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
         H_evolution(:, i) = H_hat;
 
         % Remove channel on the training
-        rx_matrix_equalized(:,i) = rx_matrix(:,i) .* exp(-1i * mod(angle(H_hat), 2*pi)) ./ abs(H_hat);
+        rx_data_equalized(:,i) = rx_data(:,i) .* exp(-1i * mod(angle(H_hat), 2*pi)) ./ abs(H_hat);
         
         % Initialize the phase tracking with the training phase
-        theta_hat_matrix(:,i) = mod(angle(H_hat), 2*pi);
+        phase_drift_matrix(:,i) = mod(angle(H_hat), 2*pi);
 
         % Loop over data symbols in this block
-        for j = i+1 : min(i + nb_symbs_between_training, nb_tot_symbs + (i + nb_symbs_between_training == nb_tot_symbs)*realmax)
+        for j = i+1 : min(i + block_len, nb_tot_symbs + (i + block_len == nb_tot_symbs)*realmax)
             
             % Take the previous phase shift
-            theta_hat_prev = theta_hat_matrix(:,j-1); 
+            theta_hat_prev = phase_drift_matrix(:,j-1); 
         
             % Generate a matrix storing in each column the vector theta_hat_prev.
             theta_hat_prev_matrix = ones(conf.ofdm.ncarrier, 6) .* theta_hat_prev;
             
             % Estimate the new phase in the [-pi/4, pi/4] interval (QPSK modulation)
             % Uses the 4th power to remove modulation
-            theta_hat = (1/4) * angle(-(rx_matrix(:,j).^4));
+            theta_hat = (1/4) * angle(-(rx_data(:,j).^4));
         
             % Produce a matrix storing in each row the shifted versions of theta_hat
             theta_hat_shifted = shift + theta_hat;
@@ -108,19 +108,19 @@ elseif strcmp(conf.channel_type, 'Block_Viterbi')
             end
 
             % Filter the phase obtained (0.01 new + 0.99 old)
-            %theta_hat_matrix(:,j) = mod(0.01*theta_hat_correct + 0.99*theta_hat_prev, 2*pi);
+            %phase_drift_matrix(:,j) = mod(0.01*theta_hat_correct + 0.99*theta_hat_prev, 2*pi);
 
             % More responsive filter
             alpha = 0.8; % Weight for the new measurement
-            theta_hat_matrix(:,j) = mod(alpha*theta_hat_correct + (1-alpha)*theta_hat_prev, 2*pi);
+            phase_drift_matrix(:,j) = mod(alpha*theta_hat_correct + (1-alpha)*theta_hat_prev, 2*pi);
           
             % Reconstruct the complex channel for this specific symbol
             % H_current = |H_training| * exp(j * tracked_phase)
-            H_current = abs(H_hat) .* exp(1i * theta_hat_matrix(:,j));
+            H_current = abs(H_hat) .* exp(1i * phase_drift_matrix(:,j));
             H_evolution(:, j) = H_current;
 
             % Perform the channel removing using the tracked phase and estimated magnitude
-            rx_matrix_equalized(:,j) = rx_matrix(:,j) ./ H_current;
+            rx_data_equalized(:,j) = rx_data(:,j) ./ H_current;
         end
     end
 
@@ -131,28 +131,28 @@ elseif strcmp(conf.channel_type, 'Comb')
     % Calculate pilot indices
     % The spacing is defined by comb_insertion_rate (4)
     pilot_spacing = conf.comb_insertion_rate + 1;
-    pilot_idxs = (1 : pilot_spacing : conf.ofdm.ncarrier).';
+    pilot_ind = (1 : pilot_spacing : conf.ofdm.ncarrier).';
     
     all_idxs = (1 : conf.ofdm.ncarrier).';
 
-    for i = 1 : size(rx_matrix, 2)
-        symb = rx_matrix(:, i);
+    for i = 1 : size(rx_data, 2)
+        symb = rx_data(:, i);
         
         % Extract the Received Pilots
-        Y = symb(pilot_idxs);
+        Y = symb(pilot_ind);
         
         % Estimation at Pilot locations
         % H_hat = Y_pilot / X_pilot
         H_hat_pilots = Y ./ conf.training_comb;
 
         % Linear Interpolation
-        % We interpolate from the known 'pilot_idxs' to 'all_idxs'.
+        % We interpolate from the known 'pilot_ind' to 'all_idxs'.
         % using the linear sp a straight line between pilot points.
         % 'extrap' is used to extends the slope for subcarriers beyond the last pilot.
-        H_interpolated = interp1(pilot_idxs, H_hat_pilots, all_idxs, 'linear', 'extrap');
+        H_interpolated = interp1(pilot_ind, H_hat_pilots, all_idxs, 'linear', 'extrap');
 
         % Equalization, we divide the received symbol by the interpolated channel estimate
-        rx_matrix_equalized(:, i) = symb ./ H_interpolated;
+        rx_data_equalized(:, i) = symb ./ H_interpolated;
         
         % Store for visualization
         H_evolution(:, i) = H_interpolated;
