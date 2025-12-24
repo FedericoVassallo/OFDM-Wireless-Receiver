@@ -1,9 +1,8 @@
 function [frame_vec, training_comb] = comb_training(data_symbs, conf)
 % COMB_TRAINING: Interleaves pilots and data within OFDM symbols
 % 
-% INPUT: 
-%   data_symbs : Vector of mapped QPSK data symbols
-%   conf       : Configuration struct (needs conf.comb_insertion_rate)
+% INPUT: data_symbs : Vector of mapped QPSK data symbols
+%   
 %
 % OUTPUT:
 %   frame_vec     : The final vector of symbols (Pilots + Data)
