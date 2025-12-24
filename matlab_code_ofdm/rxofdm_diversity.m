@@ -1,6 +1,8 @@
 function [rxbits, conf] = rxofdm_diversity(rxsignal1, rxsignal2, conf)
-% RXOFDM_DIVERSITY
-%   Processes two received signals and combines them.
+%RXOFDM_DIVERSITY Diversity receiver function combining signals from two sources using MRC.
+%   This function independently processes two received audio signals (up to synchronization
+%   and FFT), then performs coherent Maximal Ratio Combining (MRC) to enhance the 
+%   Signal-to-Noise Ratio before demapping.
 
 %% Independent Pre-processing
 % We must process both signals independently up to the FFT stage
