@@ -1,6 +1,15 @@
 function [rx_matrix_combined] = channel_tracking_diversity(rx_mat1, rx_mat2, conf)
-% CHANNEL_TRACKING_DIVERSITY
-% Implements Maximum Ratio Combining (MRC) for two receiver branches.
+%CHANNEL_TRACKING_DIVERSITY Implements receiver diversity using MRC
+%   Combines the received signals from two independent branches (microphones)
+%   using Maximal Ratio Combining to maximize the Signal-to-Noise Ratio.
+%
+%   INPUTS
+%   - rx_mat1: Received frequency-domain symbol matrix from Microphone 1
+%   - rx_mat2: Received frequency-domain symbol matrix from Microphone 2
+%   - conf: System configuration structure
+%
+%   OUTPUTS
+%   - rx_matrix_combined: The combined, higher-quality symbol matrix ready for demapping
 
 nb_tot_symbs = size(rx_mat1, 2);
 n_c = conf.ofdm.ncarrier;
