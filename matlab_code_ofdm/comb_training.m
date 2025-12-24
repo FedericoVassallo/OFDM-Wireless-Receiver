@@ -1,12 +1,16 @@
 function [frame_vec, training_comb] = comb_training(data_symbs, conf)
-% COMB_TRAINING: Interleaves pilots and data within OFDM symbols
-% 
-% INPUT: data_symbs : Vector of mapped QPSK data symbols
-%   
+%COMB_TRAINING Interleaves pilot tones and data for Comb channel estimation
+%   This function inserts pilot symbols at regular intervals (defined by
+%   conf.comb_insertion_rate) into the data stream to allow continuous
+%   channel tracking.
 %
-% OUTPUT:
-%   frame_vec     : The final vector of symbols (Pilots + Data)
-%   training_comb : The specific pilot values used (for receiver)
+%   INPUTS
+%   - data_symbs: Vector of mapped QPSK data symbols
+%   - conf: System configuration structure
+%
+%   OUTPUTS
+%   - frame_vec: The final vector of symbols (Pilots + Data) arranged for OFDM grid
+%   - training_comb: The subset of pilot values used (required for the receiver)
 
     % Extract the specific pilots for Comb
     % We take 1 pilot every 'comb_insertion_rate' + 1 symbols
