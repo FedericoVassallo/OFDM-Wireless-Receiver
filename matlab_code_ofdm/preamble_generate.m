@@ -1,12 +1,13 @@
 function output = preamble_generate(output_length)
-% A linear feedback shift register (LFSR) which outputs a PN sequence of length output_length.
-% The current LFSR has a period length of 255, but the polynomial can easily be changed for a longer one.
-% The implementation of this shift register is not very efficient, bit operations would be faster.
-% But this version is more readable, so who cares...
-% feed back polynomial
-% this one here means:
-% x^0 + x^2 + x^3 + x^4 + x^8
-% The term x^8 is only implicitly given by the length of the polynomial
+%PREAMBLE_GENERATE Generates a pseudo-noise sequence for frame synchronization using LFSR.
+%   Produces a repetitive, known binary sequence used to create the packet preamble.
+%   This sequence enables the receiver to detect the start of the frame via correlation.
+%
+%   INPUTS
+%   - output_length: Desired length of the preamble sequence
+%
+%   OUTPUTS
+%   - output: Column vector containing the generated preamble bits
 
     polynomial = [1 0 0 0 1 0 0 0 0]';
     
