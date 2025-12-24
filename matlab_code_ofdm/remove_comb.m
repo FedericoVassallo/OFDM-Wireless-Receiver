@@ -1,4 +1,14 @@
 function [data_only_matrix] = remove_comb(frame_matrix, conf)
+%REMOVE_COMB Removes pilot tones from the received symbol matrix to extract data.
+%   Based on the insertion rate defined in the configuration, this function strips
+%   out the known pilot subcarriers, leaving only the payload data for demapping.
+%
+%   INPUTS
+%   - frame_matrix: Matrix of equalized OFDM symbols containing both data and pilots
+%   - conf: System configuration structure (defining pilot insertion rate)
+%
+%   OUTPUTS
+%   - data_only_matrix: Matrix containing only the relevant data subcarriers
 
     % Define indices of the pilots (Training Symbols)
     % These must match the insertion logic in comb_training.m
