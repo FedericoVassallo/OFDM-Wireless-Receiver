@@ -1,6 +1,5 @@
 function [b] = demapper(symbol)
-%DEMAPPER Summary of this function goes here
-%   Detailed explanation goes here
+
 bit1 = real(symbol) > 0;
 bit2 = imag(symbol) > 0;
 
