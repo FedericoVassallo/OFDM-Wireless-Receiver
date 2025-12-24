@@ -1,10 +1,14 @@
 function [rx_data_equalized] = channel_tracking(rx_data, conf)
-% CHANNEL_TRACKING: Estimation and correction of the channel
-% 
-% INPUT: rx_data = matrix storing in each column an OFDM symbol (freq domain).
-%       
-% OUTPUT: rx_data_equalized = matrix storing in each column the OFDM data
-%         symbols after equalization.
+%CHANNEL_TRACKING Performs channel estimation and equalization
+%   Estimates the channel frequency response using Block or Comb pilots and
+%   equalizes the received data symbols to remove channel distortion.
+%
+%   INPUTS
+%   - rx_data: Matrix of received OFDM symbols in the frequency domain
+%   - conf: System configuration structure
+%
+%   OUTPUTS
+%   - rx_data_equalized: Matrix of equalized OFDM data symbols
 
 block_len = conf.number_OFDM_symb; % Entire frame is one block
 nb_tot_symbs = size(rx_data, 2); 
