@@ -2,7 +2,7 @@ function [rx_data_equalized] = channel_tracking(rx_data, conf)
 % CHANNEL_TRACKING: Estimation and correction of the channel
 % 
 % INPUT: rx_data = matrix storing in each column an OFDM symbol (freq domain).
-%        conf = structure storing all our global variables
+%       
 % OUTPUT: rx_data_equalized = matrix storing in each column the OFDM data
 %         symbols after equalization.
 
