@@ -1,4 +1,14 @@
 function beginning_of_data = frame_sync(rx_signal, conf)
+%FRAME_SYNC Detects the start of the data frame using matched filtering
+%   This function correlates the received signal with the known preamble pulse
+%   to identify the precise starting sample of the payload.
+%
+%   INPUTS
+%   - rx_signal: The raw received signal from the audio channel
+%   - conf: System configuration structure (containing preamble and pulse settings)
+%
+%   OUTPUTS
+%   - beginning_of_data: The sample index corresponding to the start of the data payload
 
 %% Parameters
 rolloff = 0.22;
