@@ -23,6 +23,3 @@ rxofdm.m                     - Standard receiver function performing sync, FFT, 
 rxofdm_diversity.m           - Diversity receiver function combining signals from two sources using MRC.
 training_generate.m          - Generates the pseudo-random sequence used for pilot symbols.
 txofdm.m                     - Standard transmitter function generating the full OFDM signal structure.
-
-
-
